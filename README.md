@@ -1,18 +1,23 @@
-# Template for C Projects
+# SIRU
+
+[![PyPI - Version](https://img.shields.io/pypi/v/siru.svg)](https://pypi.org/project/siru)
+[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/siru.svg)](https://pypi.org/project/siru)
 
 -----
 
-This repository is a template to be used in new projects developed in C language.
+SIRU is a tool to run automated tests on hardware, designed to be used in the development of embedded systems.
 
 **Table of Contents**
 
-- [How to use](#How-to-use)
+- [Installation](#installation)
 - [License](#license)
 
-## How to use
+## Installation
 
-When create a new repository on GitHub use this a start template to create it.
+```console
+pip install siru
+```
 
 ## License
 
-This template is distributed under the terms of the [MIT](https://spdx.org/licenses/MIT.html) license.
+`SIRU` is distributed under the terms of the [MIT](https://spdx.org/licenses/MIT.html) license.
