@@ -28,7 +28,7 @@
 ##################################################################################################
 
 from remote import Preat
-from remote.gpio import Output
+from remote.gpio import Output, Input
 
 port = "/dev/tty.usbserial-14401"
 preat = Preat(port)
@@ -37,7 +37,12 @@ led_g = Output(preat, 1)
 led_b = Output(preat, 2)
 led_1 = Output(preat, 3)
 led_2 = Output(preat, 4)
-led_3 = Output(preat, 5)
 
-led_r.set()
-led_2.set()
+tec_1 = Input(preat, 0)
+tec_2 = Input(preat, 1)
+tec_3 = Input(preat, 2)
+tec_4 = Input(preat, 3)
+
+preat.wait(100, 5000, [tec_1.has_rising, tec_2.has_falling], led_r.set)
+# led_r.set()
+led_r.toogle()

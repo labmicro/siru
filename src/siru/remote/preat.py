@@ -27,6 +27,7 @@
 # SPDX-FileCopyrightText: 2023, Esteban Volentini <evolentini@herrera.unt.edu.ar>
 ##################################################################################################
 
+from typing import List
 from enum import Enum
 from crc import Calculator, Configuration
 from struct import pack
@@ -85,6 +86,8 @@ class Parameter:
 
 
 class Preat:
+    TIMEOUT = 1
+
     def __init__(self, port: str) -> None:
         self.crc = Calculator(
             Configuration(
@@ -103,8 +106,8 @@ class Preat:
             timeout=1,
         )
 
-    def encode(self, function, parameters):
-        frame = pack(">H", 16 * function + len(parameters))
+    def encode(self, method: int, parameters: List[any]):
+        frame = pack(">H", 16 * method + len(parameters))
 
         for index in range(0, len(parameters), 2):
             if index + 1 < len(parameters):
@@ -117,13 +120,15 @@ class Preat:
         frame = frame + pack(">H", self.crc.checksum(frame))
         return frame
 
-    def excecute(self, function, parameters) -> Result:
-        frame = self.encode(function, parameters)
+    def excecute(self, method: int, parameters: List[any], timeout: int = 0) -> Result:
+        frame = self.encode(method, parameters)
         print(f"M->S: {frame.hex(' ')}")
         self.port.write(frame)
+        self.port.timeout = self.TIMEOUT + timeout
         response = self.port.read(1)
 
         if response:
+            self.port.timeout = self.TIMEOUT
             response = response + self.port.read(response[0])
             if self.crc.verify(response, 0x0000):
                 error = Result.NO_ERROR if response[2] == 0x00 else Result(response[4])
@@ -135,3 +140,26 @@ class Preat:
             print(f"S->M: (No response)")
 
         return error
+
+    def wait(
+        self, delay: int, timeout: int, inputs: List[callable], output: callable
+    ) -> Result:
+        result = self.excecute(
+            0x005,
+            [
+                Parameter(Parameter.Type.UINT32, delay),
+                Parameter(Parameter.Type.UINT32, timeout),
+                Parameter(Parameter.Type.UINT8, len(inputs)),
+                Parameter(Parameter.Type.UINT8, 0x00),
+            ],
+        )
+        if result == Result.NO_ERROR:
+            for method in inputs:
+                result = method()
+                if result != Result.NO_ERROR:
+                    break
+
+        if result == Result.NO_ERROR:
+            result = output(timeout=timeout / 1000)
+
+        return result

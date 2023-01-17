@@ -43,12 +43,46 @@ class Output:
     def preat(self) -> Preat:
         return self._preat
 
-    def set(self) -> Result:
+    def set(self, *args, **kwargs) -> Result:
         return self.preat.excecute(
-            0x010, [Parameter(Parameter.Type.UINT8, self.output)]
+            0x010, [Parameter(Parameter.Type.UINT8, self.output)], *args, **kwargs
         )
 
-    def clear(self) -> Result:
+    def clear(self, *args, **kwargs) -> Result:
         return self.preat.excecute(
-            0x011, [Parameter(Parameter.Type.UINT8, self.output)]
+            0x011, [Parameter(Parameter.Type.UINT8, self.output)], *args, **kwargs
+        )
+
+    def toogle(self, *args, **kwargs) -> Result:
+        return self.preat.excecute(
+            0x012, [Parameter(Parameter.Type.UINT8, self.output)], *args, **kwargs
+        )
+
+
+class Input:
+    def __init__(self, preat: Preat, input: int) -> None:
+        self._preat = preat
+        self._input = input
+
+    @property
+    def input(self) -> int:
+        return self._input
+
+    @property
+    def preat(self) -> Preat:
+        return self._preat
+
+    def has_rising(self, *args, **kwargs) -> Result:
+        return self.preat.excecute(
+            0x013, [Parameter(Parameter.Type.UINT8, self.input)], *args, **kwargs
+        )
+
+    def has_falling(self, *args, **kwargs) -> Result:
+        return self.preat.excecute(
+            0x014, [Parameter(Parameter.Type.UINT8, self.input)], *args, **kwargs
+        )
+
+    def has_changed(self, *args, **kwargs) -> Result:
+        return self.preat.excecute(
+            0x015, [Parameter(Parameter.Type.UINT8, self.input)], *args, **kwargs
         )

@@ -131,15 +131,19 @@ Cambia el estado lógico actual de la salida *output* por el valor complementari
 
 Verifica que en la entrada *input* se produzca una transición del estado 0:FALSO al 1:VERDADERO.
 
-#### `GPIO.HasFalling(uint8:input) (0x013)`
+#### `GPIO.HasFalling(uint8:input) (0x014)`
 
 Verifica que en la entrada *input* se produzca una transición del estado 1:VERDADERO al 0:FALSO.
 
-#### `GPIO.IsSet(uint8:input) (0x014)`
+#### `GPIO.HasChanged(uint8:input) (0x015)`
+
+Verifica que en la entrada *input* se produzca una transición de cualquier estado inicial al estado contrario.
+
+#### `GPIO.IsSet(uint8:input) (0x016)`
 
 Verifica que en la entrada *input* se encuentre en el valor lógico 1:VERDADERO.
 
-#### `GPIO.IsSet(uint8:input) (0x015)`
+#### `GPIO.IsSet(uint8:input) (0x017)`
 
 Verifica que en la entrada *input* se encuentre en el valor lógico 0:FALSO.
 
@@ -160,20 +164,57 @@ Se desea probar que un sistema responde a la activación de una entrada digital 
 
 1. **Comandos implementados**
 
-    | Mnemonico          | Longitud | Método   | Cantidad | Tipo     | Valor |
-    |:-------------------|:--------:|:--------:|:--------:|:--------:|:-----:|
-    | STATUS.Completed() | 0x05     | 0x000    | 0x0      | N/A      | N/A   |
-    | STATUS.Error(x)    | 0x07     | 0x001    | 0x1      | 0x1 0x0  |   x   |
-    | GPIO.Set(x)        | 0x07     | 0x010    | 0x1      | 0x1 0x0  |   x   |
-    | GPIO.Clear(x)      | 0x07     | 0x011    | 0x1      | 0x1 0x0  |   x   |
+    | Mnemonico           | Longitud | Método   | Cantidad | Tipo     | Valor |
+    |:--------------------|:--------:|:--------:|:--------:|:--------:|:-----:|
+    | STATUS.Completed()  | 0x05     | 0x000    | 0x0      | N/A      | N/A   |
+    | STATUS.Error(error) | 0x07     | 0x001    | 0x1      | 0x1 0x0  | error |
+    | GPIO.Set(gpio)      | 0x07     | 0x010    | 0x1      | 0x1 0x0  | gpio  |
+    | GPIO.Clear(gpio)    | 0x07     | 0x011    | 0x1      | 0x1 0x0  | gpio  |
 
 2. **Comandos usados en las pruebas**
 
-    | Mnemonico                | Longitud | Método y Cantidad | Tipo     | Valor | CRC       |
-    |:-------------------------|:--------:|:-----------------:|:--------:|:-----:|:---------:|
-    | STATUS.Completed()       | 0x05     | 0x00 0x00         |          |       | 0xA1 0xB5 |
-    | STATUS.Error(CRC)        | 0x07     | 0x00 0x11         | 0x10     | 0x01  | 0xCC 0x08 |
-    | STATUS.Error(METHOD)     | 0x07     | 0x00 0x11         | 0x10     | 0x02  | 0x6E 0xE2 |
-    | STATUS.Error(PARAMETERS) | 0x07     | 0x00 0x11         | 0x10     | 0x03  | 0xBF 0x97 |
-    | GPIO.Set(1)              | 0x07     | 0x01 0x01         | 0x10     | 0x01  | 0xB5 0xA3 |
-    | GPIO.Clear(2)            | 0x07     | 0x01 0x11         | 0x10     | 0x02  | 0xD3 0x15 |
+    | Mnemonico                | Long | Método | Tipo | Valor | CRC   |
+    |:-------------------------|:----:|:------:|:----:|:-----:|:-----:|
+    | STATUS.Completed()       | 05   | 00 00  |      |       | A1 B5 |
+    | STATUS.Error(CRC)        | 07   | 00 11  | 10   | 01    | CC 08 |
+    | STATUS.Error(METHOD)     | 07   | 00 11  | 10   | 02    | 6E E2 |
+    | STATUS.Error(PARAMETERS) | 07   | 00 11  | 10   | 03    | BF 97 |
+    | GPIO.Set(1)              | 07   | 01 01  | 10   | 01    | B5 A3 |
+    | GPIO.Clear(2)            | 07   | 01 11  | 10   | 02    | D3 15 |
+
+3. **Secuencia de comandos usados en las pruebas**
+
+    ```
+    PC -> ATE: GPIO.Set(1)
+    PC <- ATE: STATUS.Completed()
+    ```
+
+#### Prueba de una entrada digital
+
+1. **Comandos implementados**
+
+    | Mnemonico                    | Longitud | Método   | Cantidad | Tipo    | Valor   | Tipo    | Valor     |
+    |:-----------------------------|:--------:|:--------:|:--------:|:-------:|:-------:|:-------:|:---------:|
+    | TEST.Assert(min,max,cond,op) | 0x10     | 0x005    | 0x4      | 0x3 0x3 | min max | 0x1 0x1 | cond op   |
+    | GPIO.IsClear(gpio)           | 0x07     | 0x015    | 0x1      | 0x1 0x0 | gpio    |
+
+2. **Comandos usados en las pruebas**
+
+    | Mnemonico                   | Long | Método | Tipo | Valor                   | Tipo | Valor | CRC   |
+    |:----------------------------|:----:|:------:|:----:|:-----------------------:|:----:|:-----:|:-----:|
+    | TEST.Assert(100,5000,1,AND) | 11   | 00 54  | 33   | 00 00 00 64 00 00 13 88 | 11   | 01 00 | CD 2C |
+    | GPIO.IsClear(3)             | 07   | 01 51  | 10   | 03                      |      |       | B1 FA |
+
+
+
+3. **Secuencia de comandos usados en las pruebas**
+
+    ```
+    PC -> ATE: TEST.Assert(100,5000,1,AND)
+    PC <- ATE: STATUS.Completed()
+    PC -> ATE: GPIO.Rissing(1)
+    PC <- ATE: STATUS.Completed()
+    PC -> ATE: GPIO.Set(1)
+    PC <- ATE: STATUS.Completed(1)
+    PC <- ATE: STATUS.Completed(1)
+    ```
