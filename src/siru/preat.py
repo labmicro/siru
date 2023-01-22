@@ -88,23 +88,36 @@ class Parameter:
 class Preat:
     TIMEOUT = 1
 
-    def __init__(self, port: str) -> None:
-        self.crc = Calculator(
-            Configuration(
-                width=16,
-                polynomial=0xD175,
-                init_value=0x0000,
-                final_xor_value=0x0000,
-                reverse_input=False,
-                reverse_output=False,
-            ),
-            optimized=True,
-        )
-        self.port = Serial(
-            port=port,
-            baudrate=115200,
-            timeout=1,
-        )
+    def __init__(self, url: str) -> None:
+        self._type = type
+        self._url = url
+        self._port = None
+        self._crc = None
+
+    @property
+    def crc(self) -> Calculator:
+        if self._crc == None:
+            self._crc = Calculator(
+                Configuration(
+                    width=16,
+                    polynomial=0xD175,
+                    init_value=0x0000,
+                    final_xor_value=0x0000,
+                    reverse_input=False,
+                    reverse_output=False,
+                ),
+                optimized=True,
+            )
+        return self._crc
+
+    @property
+    def port(self) -> Serial:
+        if self._port == None:
+            self._port = Serial(
+                port=self._url,
+                baudrate=115200,
+            )
+        return self._port
 
     def encode(self, method: int, parameters: List[any]):
         frame = pack(">H", 16 * method + len(parameters))
@@ -120,7 +133,7 @@ class Preat:
         frame = frame + pack(">H", self.crc.checksum(frame))
         return frame
 
-    def excecute(self, method: int, parameters: List[any], timeout: int = 0) -> Result:
+    def execute(self, method: int, parameters: List[any], timeout: int = 0) -> Result:
         frame = self.encode(method, parameters)
         print(f"M->S: {frame.hex(' ')}")
         self.port.write(frame)
@@ -144,7 +157,7 @@ class Preat:
     def wait(
         self, delay: int, timeout: int, inputs: List[callable], output: callable
     ) -> Result:
-        result = self.excecute(
+        result = self.execute(
             0x005,
             [
                 Parameter(Parameter.Type.UINT32, delay),
