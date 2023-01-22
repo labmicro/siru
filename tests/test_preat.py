@@ -30,7 +30,7 @@
 import pytest
 from serial import Serial
 from pytest_mock import MockerFixture
-from siru.remote import Preat, Parameter, Result
+from siru.preat import Preat, Parameter, Result
 
 EXECUTE_OUTPUT_SINGLE_PARAM = b"\x07\x01\x01\x10\x01\xb5\xa3"
 EXECUTE_ASSERT = b"\x11\x00\x54\x33\x00\x00\x00\x64\x00\x00\x13\x88\x11\x01\x00\xCD\x2C"
@@ -49,7 +49,7 @@ class FakeInput:
         self.input = input
 
     def is_set(self, *args, **kwargs) -> Result:
-        return self.preat.excecute(
+        return self.preat.execute(
             0x015, [Parameter(Parameter.Type.UINT8, self.input)], *args, **kwargs
         )
 
@@ -60,7 +60,7 @@ class FakeOutput:
         self.output = output
 
     def set(self, *args, **kwargs) -> Result:
-        return self.preat.excecute(
+        return self.preat.execute(
             0x010, [Parameter(Parameter.Type.UINT8, self.output)], *args, **kwargs
         )
 
@@ -73,17 +73,13 @@ def mock_serial_port_init(mocker):
     mocker.timeout = mocker.patch.object(Serial, "timeout")
 
 
-def test_open_port(mocker: MockerFixture):
-    preat = Preat(port="/dev/tty.USB")
-    mocker.init.assert_called_once_with(port="/dev/tty.USB", baudrate=115200, timeout=1)
-
-
 def test_execute_command(mocker: MockerFixture):
     mocker.read.side_effect = [ACK_NO_ERROR[:1], ACK_NO_ERROR[1:]]
 
-    preat = Preat(port="/dev/tty.USB")
-    result = preat.excecute(0x010, [Parameter(Parameter.Type.UINT8, 0x01)])
+    preat = Preat("/dev/tty.USB")
+    result = preat.execute(0x010, [Parameter(Parameter.Type.UINT8, 0x01)])
 
+    mocker.init.assert_called_once_with(port="/dev/tty.USB", baudrate=115200)
     mocker.write.assert_called_once_with(EXECUTE_OUTPUT_SINGLE_PARAM)
     assert result == Result.NO_ERROR
 
@@ -91,8 +87,8 @@ def test_execute_command(mocker: MockerFixture):
 def test_crc_error_on_command(mocker: MockerFixture):
     mocker.read.side_effect = [NACK_CRC_ERROR[:1], NACK_CRC_ERROR[1:]]
 
-    preat = Preat(port="/dev/tty.USB")
-    result = preat.excecute(0x010, [Parameter(Parameter.Type.UINT8, 0x01)])
+    preat = Preat("/dev/tty.USB")
+    result = preat.execute(0x010, [Parameter(Parameter.Type.UINT8, 0x01)])
 
     assert result == Result.CRC_ERROR
 
@@ -100,8 +96,8 @@ def test_crc_error_on_command(mocker: MockerFixture):
 def test_method_not_implemented(mocker: MockerFixture):
     mocker.read.side_effect = [NACK_METHOD_ERROR[:1], NACK_METHOD_ERROR[1:]]
 
-    preat = Preat(port="/dev/tty.USB")
-    result = preat.excecute(0x010, [Parameter(Parameter.Type.UINT8, 0x01)])
+    preat = Preat("/dev/tty.USB")
+    result = preat.execute(0x010, [Parameter(Parameter.Type.UINT8, 0x01)])
 
     assert result == Result.METHOD_ERROR
 
@@ -109,8 +105,8 @@ def test_method_not_implemented(mocker: MockerFixture):
 def test_error_in_parameters(mocker: MockerFixture):
     mocker.read.side_effect = [NACK_PARAMETERS_ERROR[:1], NACK_PARAMETERS_ERROR[1:]]
 
-    preat = Preat(port="/dev/tty.USB")
-    result = preat.excecute(0x010, [Parameter(Parameter.Type.UINT8, 0x01)])
+    preat = Preat("/dev/tty.USB")
+    result = preat.execute(0x010, [Parameter(Parameter.Type.UINT8, 0x01)])
 
     assert result == Result.PARAMETERS_ERROR
 
@@ -118,8 +114,8 @@ def test_error_in_parameters(mocker: MockerFixture):
 def test_crc_error_on_response(mocker: MockerFixture):
     mocker.read.side_effect = [ACK_NO_ERROR[:1], ACK_NO_ERROR[1:3]]
 
-    preat = Preat(port="/dev/tty.USB")
-    result = preat.excecute(0x010, [Parameter(Parameter.Type.UINT8, 0x01)])
+    preat = Preat("/dev/tty.USB")
+    result = preat.execute(0x010, [Parameter(Parameter.Type.UINT8, 0x01)])
 
     assert result == Result.RESPONSE_CRC_ERROR
 
@@ -127,8 +123,8 @@ def test_crc_error_on_response(mocker: MockerFixture):
 def test_timeout_on_response(mocker: MockerFixture):
     mocker.read.return_value = None
 
-    preat = Preat(port="/dev/tty.USB")
-    result = preat.excecute(0x010, [Parameter(Parameter.Type.UINT8, 0x01)])
+    preat = Preat("/dev/tty.USB")
+    result = preat.execute(0x010, [Parameter(Parameter.Type.UINT8, 0x01)])
 
     assert result == Result.RESPONSE_TIMEOUT
 
@@ -143,7 +139,7 @@ def test_execute_assert_single_condition(mocker: MockerFixture):
         ACK_NO_ERROR[1:],
     ]
 
-    preat = Preat(port="/dev/tty.USB")
+    preat = Preat("/dev/tty.USB")
     input = FakeInput(preat, 0x03)
     output = FakeOutput(preat, 0x01)
     result = preat.wait(100, 5000, [input.is_set], output.set)
@@ -164,7 +160,7 @@ def test_execute_assert_timeout(mocker: MockerFixture):
         NACK_TIMEOUT_ERROR[1:],
     ]
 
-    preat = Preat(port="/dev/tty.USB")
+    preat = Preat("/dev/tty.USB")
     input = FakeInput(preat, 0x03)
     output = FakeOutput(preat, 0x01)
     result = preat.wait(100, 5000, [input.is_set], output.set)
@@ -183,7 +179,7 @@ def test_execute_assert_error_input(mocker: MockerFixture):
         NACK_METHOD_ERROR[1:],
     ]
 
-    preat = Preat(port="/dev/tty.USB")
+    preat = Preat("/dev/tty.USB")
     input = FakeInput(preat, 0x03)
     output = FakeOutput(preat, 0x01)
     result = preat.wait(100, 5000, [input.is_set], output.set)
@@ -199,7 +195,7 @@ def test_execute_assert_error_definition(mocker: MockerFixture):
         NACK_PARAMETERS_ERROR[1:],
     ]
 
-    preat = Preat(port="/dev/tty.USB")
+    preat = Preat("/dev/tty.USB")
     input = FakeInput(preat, 0x03)
     output = FakeOutput(preat, 0x01)
     result = preat.wait(100, 5000, [input.is_set], output.set)

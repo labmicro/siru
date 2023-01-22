@@ -20,7 +20,7 @@ classifiers = [
   "Operating System :: Unix",
   "Topic :: Software Development :: Testing :: Acceptance",
 ]
-dependencies = ["crc~=4.1", "pyserial~=3.5"]
+dependencies = ["crc~=4.1", "pyserial~=3.5", "pyyaml~=6.0", "Mako~=1.2"]
 dynamic = ["version"]
 requires-python = ">=3.7"
 
