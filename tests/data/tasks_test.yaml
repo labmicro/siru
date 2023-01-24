@@ -1,0 +1,30 @@
+---
+project:
+  name: demo-project
+  path: /home/test/project
+  binary: ./build/bin/project.elf
+
+environ:
+  MUJU: ${job.environ["HOME"]}/muju
+  TASK_TEST: Updated Value
+
+builder:
+  command: /usr/bin/make
+  template: ${job.command} ${job.action} MUJU=${job.environ["MUJU"]}
+
+monitor:
+  command: /usr/bin/openocd
+  config: ${job.abspath("openocd/config.file")}
+  port: 8888
+  template: ${job.command} -c "gdb_port ${job.port}" -f ${job.config}
+
+debugger:
+  command: arm-none-eabi-gdb
+  execute: target extended-remote localhost:${job.monitor.port}
+  template: ${job.command} ${job.abspath(job.project.binary)} --ex "${job.execute}"
+
+flasher:
+  command: make
+  config: ${project_path}/openocd/config.file
+  template: ${flasher.command} extended-remote localhost:${monitor.port}
+...
