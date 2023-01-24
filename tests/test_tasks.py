@@ -28,54 +28,14 @@
 ##################################################################################################
 
 
-import pytest, yaml, os
+import pytest, os
 from pathlib import Path
 from siru.tasks import Tasks, Project, Job
 from unittest.mock import MagicMock
 
-CONFIG_FILE_CONTENT = """
----
-tasks:
-    project:
-        name: demo-project
-        path: /home/test/project
-        binary: ./build/bin/project.elf
+from tests.utils import DATA_DIR, load_config
 
-    environ:
-        MUJU: ${job.environ["HOME"]}/muju
-        TASK_TEST: Updated Value
-
-    builder:
-        command: /usr/bin/make
-        template: ${job.command} ${job.action} MUJU=${job.environ["MUJU"]}
-
-    monitor:
-        command: /usr/bin/openocd
-        config: ${job.abspath("openocd/config.file")}
-        port: 8888
-        template: ${job.command} -c "gdb_port ${job.port}" -f ${job.config}
-
-    debugger:
-        command: arm-none-eabi-gdb
-        execute: target extended-remote localhost:${job.monitor.port}
-        template: ${job.command} ${job.abspath(job.project.binary)} --ex "${job.execute}"
-
-
-    flasher:
-        command: make
-        config: ${project_path}/openocd/config.file
-        template: ${flasher.command} extended-remote localhost:${monitor.port}
-
-...
-"""
-
-
-@pytest.fixture()
-def config_file(tmp_path_factory):
-    config_file = tmp_path_factory.mktemp("ate") / "ate-test.yaml"
-    with open(config_file, "w") as file:
-        file.write(CONFIG_FILE_CONTENT)
-    return config_file
+CONFIG = load_config("tasks_test.yaml")
 
 
 @pytest.fixture()
@@ -162,14 +122,11 @@ def test_init_default_values():
     assert tasks.flasher.template == "${job.command} -f ${job.config}"
 
 
-def test_init_from_file(config_file):
+def test_init_from_constructor_parameters():
     os.environ["TASK_TEST"] = "Original Value"
     os.environ["HOME"] = "/home/test"
 
-    with open(config_file) as file:
-        config = yaml.load(file, Loader=yaml.SafeLoader)
-
-    tasks = Tasks(**config["tasks"])
+    tasks = Tasks(**CONFIG)
     assert tasks.project.name == "demo-project"
     assert tasks.project.path == "/home/test/project"
     assert tasks.project.binary == "./build/bin/project.elf"
@@ -211,13 +168,17 @@ def test_task_set_verbose():
     assert tasks.flasher.verbose == True
 
 
-def test_tasks__builder_prebuild_called(mock_open):
+def test_tasks_builder_prebuild_called(mock_open):
     tasks = Tasks(project={"path": "/home/test"})
     callback_mock = MagicMock()
     tasks.builder.on_execute = callback_mock
     tasks.build()
     assert callback_mock.called
     assert callback_mock.call_args.args[0] == tasks.builder
+
+    callback_mock.reset_mock()
+    tasks.builder.on_execute = None
+    assert callback_mock.assert_not_called
 
 
 def test_tasks_builder_build(mock_open):
@@ -243,6 +204,24 @@ def test_tasks_builder_debugger_write(mock_open):
         debugger={"execute": "target remote"},
     )
     tasks.write()
+    assert mock_open.open.call_count == 2
+
+    call = mock_open.open.call_args_list[0]
+    assert call.args[0] == 'openocd -f config.cfg -c "gdb_port 3333"'
+    assert str(call.kwargs["cwd"]) == local_path("/home/test")
+
+    call = mock_open.open.call_args_list[1]
+    assert call.args[0] == 'gdb -f project.elf -ex "target remote"'
+    assert str(call.kwargs["cwd"]) == local_path("/home/test")
+
+
+def test_tasks_builder_debugger_restart(mock_open):
+    tasks = Tasks(
+        project={"path": "/home/test"},
+        monitor={"config": "config.cfg"},
+        debugger={"execute": "target remote"},
+    )
+    tasks.restart()
     assert mock_open.open.call_count == 2
 
     call = mock_open.open.call_args_list[0]
