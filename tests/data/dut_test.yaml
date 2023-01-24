@@ -1,0 +1,29 @@
+---
+name: dut-test
+ate: !include ate_test.yaml
+tasks: !include tasks_test.yaml
+
+digital_inputs:
+  - name: key_left
+    ate_output: output_red
+  - name: key_up
+    ate_output: output_blue
+  - name: key_rigth
+    ate_output: output_white
+  - name: key_down
+    ate_output: output_gray
+  - name: key_accept
+    ate_output: output_cyan
+  - name: key_cancel
+    ate_output: output_yellow
+
+digital_outputs:
+  - name: led_rgb_red
+    ate_input: input_green
+  - name: led_rgb_green
+    ate_input: input_violet
+  - name: led_rgb_blue
+    ate_input: input_orange
+  - name: led_yellow
+    ate_input: input_brown
+...
