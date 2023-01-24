@@ -27,161 +27,74 @@
 # SPDX-FileCopyrightText: 2023, Esteban Volentini <evolentini@herrera.unt.edu.ar>
 ##################################################################################################
 
-import pytest
+import pytest, shutil, filecmp
 from siru.ate import ATE
 from typing import Callable
+from tests.utils import DATA_DIR, load_config
+from pathlib import Path
 
-CONFIG_FILE_CONTENT = """
----
-name: ate-edu-ciaa-nxp
-board: edu-ciaa-nxp
-
-server:
-  url: /dev/tty.USB
-
-digital_outputs:
-  - name: led_rgb_r
-    gpio_bit: HAL_GPIO5_0
-  - name: led_rgb_g
-    gpio_bit: HAL_GPIO5_1
-  - name: led_rgb_b
-    gpio_bit: HAL_GPIO5_2
-  - name: led_1
-    gpio_bit: HAL_GPIO0_14
-  - name: led_2
-    gpio_bit: HAL_GPIO1_11
-  - name: led_3
-    gpio_bit: HAL_GPIO1_12
-
-digital_inputs:
-  - name: tec_1
-    gpio_bit: HAL_GPIO0_4
-  - name: tec_2
-    gpio_bit: HAL_GPIO0_8
-  - name: tec_3
-    gpio_bit: HAL_GPIO0_9
-  - name: tec_4
-    gpio_bit: HAL_GPIO1_9
-...
-"""
-
-OUTPUT_INIT_CODE = """
-        gpio_list[0] = HAL_GPIO5_0;
-        gpio_list[1] = HAL_GPIO5_1;
-        gpio_list[2] = HAL_GPIO5_2;
-        gpio_list[3] = HAL_GPIO0_14;
-        gpio_list[4] = HAL_GPIO1_11;
-        gpio_list[5] = HAL_GPIO1_12;
-"""
-
-INPUT_INIT_CODE = """
-        gpio_list[0] = HAL_GPIO0_4;
-        gpio_list[1] = HAL_GPIO0_8;
-        gpio_list[2] = HAL_GPIO0_9;
-        gpio_list[3] = HAL_GPIO1_9;
-"""
-
-TEST_TEMPLATE_CONTENT = """
-#define GPIO_INPUTS_COUNT  ${digital_inputs.count}
-
-#define GPIO_OUTPUTS_COUNT ${digital_outputs.count}
-
-bool GpioInputsListInit(hal_gpio_bit_t gpio_list[], uint8_t count) {
-    bool result = (count == GPIO_INPUTS_COUNT);
-
-    if (result) {
-${digital_inputs.init_code}
-    }
-    return result;
-}
-
-bool GpioOutputsListInit(hal_gpio_bit_t gpio_list[], uint8_t count) {
-    bool result = (count == GPIO_OUTPUTS_COUNT);
-
-    if (result) {
-${digital_outputs.init_code}
-    }
-    return result;
-}
-"""
-
-TEMPLATE_EXPECTED_RESULT = """
-#define GPIO_INPUTS_COUNT  4
-
-#define GPIO_OUTPUTS_COUNT 6
-
-bool GpioInputsListInit(hal_gpio_bit_t gpio_list[], uint8_t count) {
-    bool result = (count == GPIO_INPUTS_COUNT);
-
-    if (result) {
-        gpio_list[0] = HAL_GPIO0_4;
-        gpio_list[1] = HAL_GPIO0_8;
-        gpio_list[2] = HAL_GPIO0_9;
-        gpio_list[3] = HAL_GPIO1_9;
-    }
-    return result;
-}
-
-bool GpioOutputsListInit(hal_gpio_bit_t gpio_list[], uint8_t count) {
-    bool result = (count == GPIO_OUTPUTS_COUNT);
-
-    if (result) {
-        gpio_list[0] = HAL_GPIO5_0;
-        gpio_list[1] = HAL_GPIO5_1;
-        gpio_list[2] = HAL_GPIO5_2;
-        gpio_list[3] = HAL_GPIO0_14;
-        gpio_list[4] = HAL_GPIO1_11;
-        gpio_list[5] = HAL_GPIO1_12;
-    }
-    return result;
-}
-"""
+CONFIG = load_config("ate_test.yaml")
 
 
-@pytest.fixture(autouse=True)
-def config_file(tmp_path_factory):
-    config_file = tmp_path_factory.mktemp("ate") / "ate-test.yaml"
-    with open(config_file, "w") as file:
-        file.write(CONFIG_FILE_CONTENT)
-    return config_file
+@pytest.fixture()
+def ruwaq_path(tmp_path_factory):
+    ruwaq_path = tmp_path_factory.mktemp("ruwaq")
+    return ruwaq_path
 
 
-def test_load_from_file(config_file):
-    ate = ATE(config_file)
-    assert ate.name == "ate-edu-ciaa-nxp"
-    assert ate.board == "edu-ciaa-nxp"
+def test_init_from_arguments():
+    ate = ATE(**CONFIG)
+
+    assert ate.name == "ate-test"
+    assert ate.board == "board-test"
 
     assert ate.digital_outputs.count == 6
 
-    assert ate.digital_outputs.list[0].name == "led_rgb_r"
+    assert ate.digital_outputs.list[0].name == "output_red"
     assert ate.digital_outputs.list[1].index == 1
-    assert ate.digital_outputs.list[2].gpio_bit == "HAL_GPIO5_2"
-
-    assert ate.digital_outputs.init_code.strip() == OUTPUT_INIT_CODE.strip()
+    assert ate.digital_outputs.list[2].gpio_bit == "HAL_GPIO_A3"
 
     assert ate.digital_inputs.count == 4
-    assert ate.digital_inputs.list[1].name == "tec_2"
+    assert ate.digital_inputs.list[1].name == "input_violet"
     assert ate.digital_inputs.list[2].index == 2
-    assert ate.digital_inputs.list[3].gpio_bit == "HAL_GPIO1_9"
-
-    assert ate.digital_inputs.init_code.strip() == INPUT_INIT_CODE.strip()
-
-    assert ate.render(TEST_TEMPLATE_CONTENT) == TEMPLATE_EXPECTED_RESULT
+    assert ate.digital_inputs.list[3].gpio_bit == "HAL_GPIO_D7"
 
 
-def test_access_atributes_server(config_file):
-    ate = ATE(config_file)
+def test_access_atributes_server():
+    ate = ATE(**CONFIG)
     assert isinstance(ate.wait, Callable)
     assert isinstance(ate.execute, Callable)
 
 
-def test_access_atributes_digital_outputs(config_file):
-    ate = ATE(config_file)
-    assert ate.led_rgb_r.gpio_bit == "HAL_GPIO5_0"
-    assert ate.led_2.gpio_bit == "HAL_GPIO1_11"
+def test_access_atributes_digital_outputs():
+    ate = ATE(**CONFIG)
+    assert ate.output_gray.gpio_bit == "HAL_GPIO_B1"
+    assert ate.output_yellow.gpio_bit == "HAL_GPIO_B3"
 
 
-def test_access_atributes_digital_inputs(config_file):
-    ate = ATE(config_file)
-    assert ate.tec_2.gpio_bit == "HAL_GPIO0_8"
-    assert ate.tec_4.gpio_bit == "HAL_GPIO1_9"
+def test_access_atributes_digital_inputs():
+    ate = ATE(**CONFIG)
+    assert ate.input_violet.gpio_bit == "HAL_GPIO_D5"
+    assert ate.input_brown.gpio_bit == "HAL_GPIO_D7"
+
+
+def test_undefined_property_raise_exception():
+    ate = ATE(**CONFIG)
+    with pytest.raises(AttributeError) as exc_info:
+        dummy = ate.input_none.name
+    assert str(exc_info.value) == "ATE object has no attribute input_none"
+
+
+def test_render_config_files(ruwaq_path):
+    source = DATA_DIR.parent / "ruwaq" / "template"
+    destination = ruwaq_path / "module" / "template"
+    shutil.copytree(source, destination)
+
+    ate = ATE(**CONFIG)
+    ate.ruwaq = str(ruwaq_path)
+    ate.generate_config()
+    source = Path(ruwaq_path / "config" / ate.name)
+    destination = Path(DATA_DIR.parent / "ruwaq" / "expected")
+
+    assert filecmp.cmp(f"{source}/inc/config.h", f"{destination}/inc/config.h")
+    assert filecmp.cmp(f"{source}/src/config.c", f"{destination}/src/config.c")

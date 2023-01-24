@@ -30,37 +30,22 @@
 import os, glob, subprocess, yaml
 from asyncio.subprocess import PIPE
 from mako.template import Template
-from . import gpio, preat
+from siru import gpio, preat
 
 
 class ATE:
-    def __init__(self, filename: str) -> None:
-        with open(filename) as file:
-            config = yaml.load(file, Loader=yaml.SafeLoader)
-
-        self._name = config.get("name", filename)
-        self._board = config.get("board", "")
-        self._server = preat.Preat(**config.get("server"))
+    def __init__(self, **kwargs) -> None:
+        self.name = kwargs.get("name", "")
+        self.board = kwargs.get("board", "")
+        self._server = preat.Preat(**kwargs.get("server"))
         self.ruwaq = ""
 
         self._digital_outputs = gpio.List(
-            self._server, gpio.Output, config.get("digital_outputs", [])
+            self._server, gpio.Output, kwargs.get("digital_outputs", [])
         )
         self._digital_inputs = gpio.List(
-            self._server, gpio.Input, config.get("digital_inputs", [])
+            self._server, gpio.Input, kwargs.get("digital_inputs", [])
         )
-
-    @property
-    def name(self) -> str:
-        return self._name
-
-    @property
-    def board(self) -> str:
-        return self._board
-
-    @property
-    def server(self) -> str:
-        return self._server
 
     @property
     def digital_outputs(self) -> gpio.List:
@@ -78,7 +63,7 @@ class ATE:
             result = getattr(self._digital_outputs, name, None)
         if result == None:
             raise AttributeError(
-                f"'{self.__class__.__name__}' object has no attribute '{name}'"
+                f"{self.__class__.__name__} object has no attribute {name}"
             )
         return result
 
@@ -89,10 +74,8 @@ class ATE:
         )
 
     def generate_config(self, ruwaq: str = None):
-        if ruwaq == None:
-            ruwaq = self.ruwaq
-        templates = ruwaq + "/module/template"
-        destination = ruwaq + f"/config/{self._name}"
+        templates = f"{self.ruwaq}/module/template"
+        destination = f"{self.ruwaq}/config/{self.name}"
         sources = glob.glob(templates + "/**/*.[c,h]", recursive=True)
         for source in sources:
             with open(source) as file:

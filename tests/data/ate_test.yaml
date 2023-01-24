@@ -1,0 +1,31 @@
+---
+name: ate-test
+board: board-test
+
+server:
+  url: /dev/tty.USB
+
+digital_outputs:
+  - name: output_red
+    gpio_bit: HAL_GPIO_A1
+  - name: output_blue
+    gpio_bit: HAL_GPIO_A2
+  - name: output_white
+    gpio_bit: HAL_GPIO_A3
+  - name: output_gray
+    gpio_bit: HAL_GPIO_B1
+  - name: output_cyan
+    gpio_bit: HAL_GPIO_B2
+  - name: output_yellow
+    gpio_bit: HAL_GPIO_B3
+
+digital_inputs:
+  - name: input_green
+    gpio_bit: HAL_GPIO_D4
+  - name: input_violet
+    gpio_bit: HAL_GPIO_D5
+  - name: input_orange
+    gpio_bit: HAL_GPIO_D6
+  - name: input_brown
+    gpio_bit: HAL_GPIO_D7
+...
