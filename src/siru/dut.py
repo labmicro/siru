@@ -68,6 +68,9 @@ class DUT:
     def ate(self) -> ate.ATE:
         return self._ate
 
+    def wait(self, *args, **kwargs):
+        return self._ate.wait(*args, **kwargs)
+
     def __get_ate_output(self, name: str) -> Union[gpio.Output, None]:
         results = list(filter(lambda item: item.name == name, self._digital_inputs))
         return getattr(self._ate, results[0].ate_pin, None) if len(results) else None

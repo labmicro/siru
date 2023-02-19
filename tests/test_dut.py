@@ -50,6 +50,12 @@ def test_init_from_config_file():
     assert dut.ate.name == "ate-test"
 
 
+def test_wait_inputs():
+    config_file = DATA_DIR / CONFIG_FILE
+    dut = DUT(yaml=config_file)
+    assert isinstance(dut.wait, Callable)
+
+
 def test_access_atributes_digital_inputs():
     config_file = DATA_DIR / CONFIG_FILE
     dut = DUT(yaml=config_file)
@@ -71,6 +77,7 @@ def test_access_tasks():
     dut = DUT(**CONFIG_DICT)
     assert isinstance(dut.build, Callable)
     assert isinstance(dut.clean, Callable)
+    assert isinstance(dut.flash, Callable)
 
 
 def test_undefined_property_raise_exception():

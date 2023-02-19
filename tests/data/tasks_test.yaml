@@ -26,5 +26,5 @@ debugger:
 flasher:
   command: make
   config: ${project_path}/openocd/config.file
-  template: ${flasher.command} extended-remote localhost:${monitor.port}
+  template: ${job.command} extended-remote localhost:${monitor.port}
 ...
