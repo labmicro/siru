@@ -202,3 +202,34 @@ def test_execute_assert_error_definition(mocker: MockerFixture):
 
     mocker.write.assert_any_call(EXECUTE_ASSERT)
     assert result == Result.PARAMETERS_ERROR
+
+
+def test_change_port_before_open(mocker: MockerFixture):
+    preat = Preat("/dev/tty.USB")
+    assert preat.url == "/dev/tty.USB"
+    preat.url = "/dev/tty.USB_DEVICE"
+    assert preat.url == "/dev/tty.USB_DEVICE"
+
+    mocker.read.return_value = None
+    result = preat.execute(0x010, [Parameter(Parameter.Type.UINT8, 0x01)])
+    mocker.init.assert_called_once_with(port="/dev/tty.USB_DEVICE", baudrate=115200)
+    assert result == Result.RESPONSE_TIMEOUT
+
+
+def test_change_port_after_open(mocker: MockerFixture):
+    preat = Preat("/dev/tty.USB")
+    assert preat.url == "/dev/tty.USB"
+
+    mocker.read.return_value = None
+    result = preat.execute(0x010, [Parameter(Parameter.Type.UINT8, 0x01)])
+    mocker.init.assert_called_once_with(port="/dev/tty.USB", baudrate=115200)
+    assert result == Result.RESPONSE_TIMEOUT
+
+    preat.url = "/dev/tty.USB_DEVICE"
+    assert preat.url == "/dev/tty.USB_DEVICE"
+
+    mocker.init.reset_mock()
+    mocker.read.return_value = None
+    result = preat.execute(0x010, [Parameter(Parameter.Type.UINT8, 0x01)])
+    mocker.init.assert_called_once_with(port="/dev/tty.USB_DEVICE", baudrate=115200)
+    assert result == Result.RESPONSE_TIMEOUT
