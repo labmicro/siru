@@ -98,3 +98,11 @@ def test_render_config_files(ruwaq_path):
 
     assert filecmp.cmp(f"{source}/inc/config.h", f"{destination}/inc/config.h")
     assert filecmp.cmp(f"{source}/src/config.c", f"{destination}/src/config.c")
+
+
+def test_access_atributes_url_preat_server():
+    ate = ATE(**CONFIG)
+    assert ate.url == "/dev/tty.USB"
+
+    ate.url = "/dev/tty.USB_DEVICE"
+    assert ate.url == "/dev/tty.USB_DEVICE"

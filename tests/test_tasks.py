@@ -155,7 +155,7 @@ def test_init_from_constructor_parameters():
 
     assert (
         tasks.flasher.template
-        == "${flasher.command} extended-remote localhost:${monitor.port}"
+        == "${job.command} extended-remote localhost:${monitor.port}"
     )
 
 

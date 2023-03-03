@@ -113,11 +113,17 @@ class Preat:
     @property
     def port(self) -> Serial:
         if self._port == None:
-            self._port = Serial(
-                port=self._url,
-                baudrate=115200,
-            )
+            self._port = Serial(port=self._url, baudrate=115200)
         return self._port
+
+    @property
+    def url(self) -> Serial:
+        return self._url
+
+    @url.setter
+    def url(self, value) -> Serial:
+        self._url = value
+        self._port = None
 
     def encode(self, method: int, parameters: List[any]):
         frame = pack(">H", 16 * method + len(parameters))
