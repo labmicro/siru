@@ -102,7 +102,7 @@ def test_render_config_files(ruwaq_path):
 
 def test_access_atributes_url_preat_server():
     ate = ATE(**CONFIG)
-    assert ate.url == "/dev/tty.USB"
+    assert ate.server.url == "/dev/tty.USB"
 
-    ate.url = "/dev/tty.USB_DEVICE"
-    assert ate.url == "/dev/tty.USB_DEVICE"
+    ate.server.url = "/dev/tty.USB_DEVICE"
+    assert ate.server.url == "/dev/tty.USB_DEVICE"

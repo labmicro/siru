@@ -27,4 +27,4 @@
 # SPDX-FileCopyrightText: 2023, Esteban Volentini <evolentini@herrera.unt.edu.ar>
 ##################################################################################################
 
-__version__ = "0.3"
+__version__ = "0.4"
