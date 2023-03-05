@@ -48,6 +48,10 @@ class ATE:
         )
 
     @property
+    def server(self) -> preat.Preat:
+        return self._server
+
+    @property
     def digital_outputs(self) -> gpio.List:
         return self._digital_outputs
 
