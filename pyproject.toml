@@ -47,6 +47,7 @@ dependencies = ["pytest", "pytest-mock", "pytest-cov", "pycrc"]
 
 [tool.hatch.envs.default.scripts]
 cov = "pytest --cov-report=term-missing --cov-config=pyproject.toml --cov=src/siru --cov=tests {args}"
+html-cov = "pytest --cov-report=html --cov-config=pyproject.toml --cov=src/siru {args}"
 no-cov = "cov --no-cov {args}"
 
 [[tool.hatch.envs.test.matrix]]

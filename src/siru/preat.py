@@ -32,6 +32,7 @@ from enum import Enum
 from crc import Calculator, Configuration
 from struct import pack
 from serial import Serial
+from serial.tools import list_ports
 
 
 class Result(Enum):
@@ -113,8 +114,16 @@ class Preat:
     @property
     def port(self) -> Serial:
         if self._port == None:
-            self._port = Serial(port=self._url, baudrate=115200)
+            self._port = Serial(port=self.serial_url, baudrate=115200)
         return self._port
+
+    def serial_url(self) -> str:
+        location = self._url.split("//")
+        if location[0].lower() == "usb:":
+            for port in list_ports.comports():
+                if str(port.location).startswith(location[1]):
+                    return port
+        return self._url
 
     @property
     def url(self) -> Serial:
